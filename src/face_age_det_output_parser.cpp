@@ -38,38 +38,57 @@ int32_t FaceAgeDetOutputParser::parse(std::shared_ptr<FaceAgeDetResult> &output,
         RCLCPP_INFO(logger_, "=> shape: [%d, %d, %d, %d]", shape[0], shape[1], shape[2], shape[3]);
         RCLCPP_INFO(logger_, "=> aligned_shape: [%d, %d, %d, %d]", aligned_shape[0], aligned_shape[1], aligned_shape[2], aligned_shape[3]);
 
-        int offset = 1;
-        if (output_tensor->properties.tensorLayout == HB_DNN_LAYOUT_NCHW)
-        {
-            offset = aligned_shape[2] * aligned_shape[3];
-        }
+        // int offset = 1;
+        // if (output_tensor->properties.tensorLayout == HB_DNN_LAYOUT_NCHW)
+        // {
+        //     offset = aligned_shape[2] * aligned_shape[3];
+        // }
 
-        int age = 0;
-        for (auto i = 0; i < shape[0] * shape[1] * shape[2] * shape[3]; i++)
+        int align_b_step = aligned_shape[1] * aligned_shape[2] * aligned_shape[3];
+        int align_c_step = aligned_shape[2] * aligned_shape[3];
+        int align_h_step = aligned_shape[3];
+
+        int c_step = shape[2] * shape[3];
+        int h_step = shape[3];
+
+        for (int b = 0; b < shape[0]; b++)
         {
-            if (output_tensor->properties.quantiType == SHIFT)
+            int age = 0;
+            for (int c = 0; c < shape[1]; c++)
             {
-                RCLCPP_INFO_ONCE(logger_, "=> quant shift");
-                if (quanti_shift(data[i * offset], output_tensor->properties.shift.shiftData[i]) > 0)
-                    age++;
+                for (int h = 0; h < shape[2]; h++)
+                {
+                    for (int w = 0; w < shape[3]; w++)
+                    {
+                        {
+                            int index = c * c_step + h * h_step + w;
+                            if (output_tensor->properties.quantiType == SHIFT)
+                            {
+                                RCLCPP_INFO_ONCE(logger_, "=> quant shift");
+                                if (quanti_shift(data[b * align_b_step + c * align_c_step + h * align_h_step + w], output_tensor->properties.shift.shiftData[index]) > 0)
+                                    age++;
+                            }
+                            else if (output_tensor->properties.quantiType == SCALE)
+                            {
+                                RCLCPP_INFO_ONCE(logger_, "=> quant scale");
+                                if (quanti_scale(data[b * align_b_step + c * align_c_step + h * align_h_step + w], output_tensor->properties.scale.scaleData[index]))
+                                    age++;
+                            }
+                            else if (output_tensor->properties.quantiType == NONE)
+                            {
+                                RCLCPP_INFO_ONCE(logger_, "=> quant none");
+                                if (data[b * align_b_step + c * align_c_step + h * align_h_step + w] > 0)
+                                    age++;
+                            }
+                            else
+                            {
+                                return -1;
+                            }
+                        }
+                    }
+                }
             }
-            else if (output_tensor->properties.quantiType == SCALE)
-            {
-                RCLCPP_INFO_ONCE(logger_, "=> quant scale");
-                if (quanti_scale(data[i * offset], output_tensor->properties.scale.scaleData[i]))
-                    age++;
-            }
-            else if (output_tensor->properties.quantiType == NONE)
-            {
-                RCLCPP_INFO_ONCE(logger_, "=> quant none");
-                if (data[i * offset] > 0)
-                    age++;
-            }
-            else
-            {
-                return -1;
-            }
+            RCLCPP_INFO(logger_, "=> age: [%d]", age);
         }
-        RCLCPP_INFO(logger_, "=> age: [%d]", age);
     }
 }

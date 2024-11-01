@@ -63,9 +63,9 @@ def generate_launch_description():
         },
         {
             "name": "roi_xyxy",
-            # "default_value": "398,602,476,685,251,242,328,337,283,343,364,450,547,243,666,355",
+            "default_value": "398,602,476,685,251,242,328,337,283,343,364,450,547,243,666,355",
             # "default_value": "398,602,476,685",
-            "default_value": "251,242,328,337",
+            # "default_value": "251,242,328,337",
             # "default_value": "547,243,666,355",
             # "default_value": "283,343,364,450",
             "description": "roi_xyxy",
