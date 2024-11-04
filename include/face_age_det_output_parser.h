@@ -47,6 +47,7 @@ private:
         return data * scale;
     }
 
+    // log print
     rclcpp::Logger logger_;
 };
 

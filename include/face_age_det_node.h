@@ -1,6 +1,8 @@
 #ifndef FACE_AGE_DET_NODE_H
 #define FACE_AGE_DET_NODE_H
 
+// #define SHARED_MEM_ENABLED
+
 #include <fstream>
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -10,6 +12,7 @@
 #include "dnn_node/util/image_proc.h"
 #include "img_convert_utils.h"
 #include "face_age_det_output_parser.h"
+#include "ai_msg_manage.h"
 #ifdef SHARED_MEM_ENABLED
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
 #endif
@@ -39,8 +42,14 @@ struct FeedbackImgInfo
     std::vector<std::vector<int32_t>> rois;
 };
 
+/**
+ * @brief face age det output tensor
+ */
 struct FaceAgeDetOutput : public DnnNodeOutput
 {
+    // svae image timestamp
+    std::shared_ptr<std_msgs::msg::Header> image_msg_header = nullptr;
+
     // roi that meets the constraints of the resizer model
     std::shared_ptr<std::vector<hbDNNRoi>> valid_rois;
 
@@ -52,6 +61,9 @@ struct FaceAgeDetOutput : public DnnNodeOutput
 
     // pub ai_msg
     ai_msgs::msg::PerceptionTargets::UniquePtr ai_msg;
+
+    // recording time-consuming
+    ai_msgs::msg::Perf perf_preprocess;
 };
 
 /**
@@ -82,7 +94,7 @@ private:
     int Feedback();
 
     /**
-     * @brief do model inference
+     * @brief do model inference -- offline
      */
     int Predict(std::vector<std::shared_ptr<DNNInput>> &inputs, const std::shared_ptr<std::vector<hbDNNRoi>> rois, std::shared_ptr<DnnNodeOutput> dnn_output);
 
@@ -91,7 +103,30 @@ private:
      */
     int Render(const std::shared_ptr<NV12PyramidInput> &pyramid, std::string result_image, std::shared_ptr<std::vector<hbDNNRoi>> &valid_rois, std::shared_ptr<FaceAgeDetResult> &face_age_det_result);
 
-    // void RunPredict();
+    /**
+     * @brief do model inference -- online
+     */
+    void RunPredict();
+
+    /**
+     * @brief ai msg process callback
+     */
+    void AiMsgProcess(const ai_msgs::msg::PerceptionTargets::ConstSharedPtr msg);
+
+    /**
+     * @brief img msg process callback
+     */
+    void RosImgProcess(const sensor_msgs::msg::Image::ConstSharedPtr msg);
+
+    // =================================================================================================================================
+#ifdef SHARED_MEM_ENABLED
+    // sharedmem img sub
+    rclcpp::Subscription<hbm_img_msgs::msg::HbmMsg1080P>::ConstSharedPtr sharedmem_img_subscription_ = nullptr;
+    // sharedmem img sub topic
+    std::string sharedmem_img_topic_name_ = "/hbmem_img";
+    // sharedmem img process callback
+    void SharedMemImgProcess(const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg);
+#endif
 
     // =================================================================================================================================
     // image source used for inference, 0: subscribed image msg; 1: local nv12 format image
@@ -141,8 +176,19 @@ private:
     // image sub
     rclcpp::Subscription<sensor_msgs::msg::Image>::ConstSharedPtr ros_img_subscription_ = nullptr;
 
+    // use to process ai msg
+    std::shared_ptr<AiMsgManage> ai_msg_manage_ = nullptr;
+
     // predict task
     std::shared_ptr<std::thread> predict_task_ = nullptr;
+
+    // Convert the subscribed image data into pym and cache it in the queue
+    using CacheImgType = std::pair<std::shared_ptr<FaceAgeDetOutput>, std::shared_ptr<NV12PyramidInput>>;
+    std::queue<CacheImgType> cache_img_;
+    size_t cache_len_limit_ = 8;
+    // Perform inference in threads to avoid blocking IO channels and causing AI msg message loss
+    std::mutex mtx_img_;
+    std::condition_variable cv_img_;
 };
 
 #endif

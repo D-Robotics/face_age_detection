@@ -22,11 +22,20 @@ bash build.sh -p X5 -s face_age_detection
 
 ```shell
 ===============================================================================================================================
-# 目前只支持离线图片推理，而且只支持设置一个roi区域，多个roi区域存在bug
-ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=图片.png roi_xyxy:=x1,y1,x2,y2
+# 离线推理
+ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=图片.png roi_xyxy:=x1,y1,x2,y2,x3,y3,x4,y4,...
 # 例如
 ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=image.png roi_xyxy:=251,242,328,337
 ===============================================================================================================================
+# 在线推理，需要同时启动身体部分检测和年龄检测节点
+
+cp -r /opt/tros/${TROS_DISTRO}/lib/mono2d_body_detection/config/ .
+# 使用usb相机
+export CAM_TYPE=usb
+# 使用mipi相机
+export CAM_TYPE=mipi
+
+ros2 launch mono2d_body_detection mono2d_body_detection.launch.py
 ```
 
 ## 运行结果
