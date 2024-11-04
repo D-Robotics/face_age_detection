@@ -23,21 +23,21 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration('log_level')
     max_slide_window_size_cmd = DeclareLaunchArgument(
         "max_slide_window_size", default_value="30",
         description="max_slide_window_size")
 
-    mono2d_body_det_node = IncludeLaunchDescription(
+    gesture_det_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("mono2d_body_detection"),
-                "launch/mono2d_body_detection.launch.py",
+                get_package_share_directory("hand_gesture_detection"),
+                "launch/hand_gesture_detection.launch.py",
             )
         ),
         launch_arguments={
-            "mono2d_body_pub_topic": "/hobot_mono2d_body_detection",
-            "smart_topic": "/hobot_face_age_detection",
-            "log_level": "error",
+            "ai_msg_pub_topic_name": "/hobot_hand_gesture_detection",
+            'smart_topic': '/hobot_hand_gesture_detection',
         }.items(),
     )
 
@@ -53,14 +53,27 @@ def generate_launch_description():
             "ai_msg_pub_topic_name": "/hobot_face_age_detection",
             "is_shared_mem_sub": "1",
             "max_slide_window_size": LaunchConfiguration("max_slide_window_size"),
-            "log_level": "info",
+            "log_level": log_level,
         }.items(),
+    )
+
+    perc_fusion_node = Node(
+        package='tros_ai_fusion',
+        executable='tros_ai_fusion',
+        name='tros_perc_fusion_node',
+        output='screen',
+        parameters=[
+                    {'topic_name_base': '/hobot_hand_gesture_detection'},
+                    {'topic_names_fusion': ['/hobot_face_age_detection']},
+                    {'pub_fusion_topic_name': '/tros_age_gesture_perc_fusion'},
+        ],
+       arguments=['--ros-args', '--log-level', log_level]
     )
 
     return LaunchDescription(
         [
-            max_slide_window_size_cmd,
-            mono2d_body_det_node,
+            gesture_det_node,
             face_age_det_node,
+            perc_fusion_node
         ]
     )

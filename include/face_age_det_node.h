@@ -16,6 +16,7 @@
 #ifdef SHARED_MEM_ENABLED
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
 #endif
+#include "vote.hpp"
 
 using rclcpp::NodeOptions;
 
@@ -189,6 +190,9 @@ private:
     // Perform inference in threads to avoid blocking IO channels and causing AI msg message loss
     std::mutex mtx_img_;
     std::condition_variable cv_img_;
+    
+    int max_slide_window_size = 15;
+    std::shared_ptr<tros::Vote> sp_vote_ = nullptr;
 };
 
 #endif

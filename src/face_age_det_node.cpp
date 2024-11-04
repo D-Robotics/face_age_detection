@@ -27,6 +27,7 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
     is_shared_mem_sub_ = this->declare_parameter<int>("is_shared_mem_sub", 1);
     dump_render_img_ = this->declare_parameter<int>("dump_render_img", 0);
     ai_msg_pub_topic_name_ = this->declare_parameter<std::string>("ai_msg_pub_topic_name", "/face_age_detection");
+    max_slide_window_size = this->declare_parameter<int>("max_slide_window_size", max_slide_window_size);
 
     RCLCPP_WARN_STREAM(this->get_logger(), "=> " << node_name << " params:" << std::endl
                                                  << "=> feed_type: " << feed_type_ << std::endl
@@ -34,7 +35,8 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
                                                  << "=> model_file_name: " << model_file_name_ << std::endl
                                                  << "=> is_shared_mem_sub: " << is_shared_mem_sub_ << std::endl
                                                  << "=> dump_render_img: " << dump_render_img_ << std::endl
-                                                 << "=> ai_msg_pub_topic_name: " << ai_msg_pub_topic_name_
+                                                 << "=> ai_msg_pub_topic_name: " << ai_msg_pub_topic_name_ << std::endl
+                                                 << "=> max_slide_window_size: " << max_slide_window_size
 
     );
     if (feed_type_ == 1)
@@ -74,6 +76,8 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
     {
         RCLCPP_INFO(this->get_logger(), "=> The model input width is %d and height is %d", model_input_width_, model_input_height_);
     }
+
+    sp_vote_ = std::make_shared<tros::Vote>(tros::VoTeType::AGE, max_slide_window_size);
 
     // set inference tasks
     if (1 == feed_type_)
@@ -281,7 +285,14 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
                     // set age to attribute
                     auto attribute = ai_msgs::msg::Attribute();
                     attribute.set__type("age");
-                    attribute.set__value(face_age_det_result->ages[face_valid_roi_idx]);
+                    // attribute.set__value(face_age_det_result->ages[face_valid_roi_idx]);
+                    int age = face_age_det_result->ages[face_valid_roi_idx];
+                    int out_val;
+                    if (sp_vote_ && sp_vote_->DoProcess(age, in_target.track_id, out_val) == 0) {
+                        age = out_val;
+                    }
+                    attribute.set__value(age);
+                
                     target.attributes.emplace_back(attribute);
 
                     face_roi_idx++;

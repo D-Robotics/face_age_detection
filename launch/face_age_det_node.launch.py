@@ -91,6 +91,11 @@ def generate_launch_description():
             "default_value": "/face_age_detection",
             "description": "ai_msg_pub_topic_name",
         },
+        {
+            "name": "max_slide_window_size",
+            "default_value": "30",
+            "description": "max_slide_window_size",
+        },
         {"name": "log_level", "default_value": "info", "description": "log_level"},
     ]
 
