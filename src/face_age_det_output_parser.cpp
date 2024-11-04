@@ -4,7 +4,7 @@ FaceAgeDetOutputParser::FaceAgeDetOutputParser(const rclcpp::Logger &logger) : l
 {
 }
 
-int32_t FaceAgeDetOutputParser::parse(std::shared_ptr<FaceAgeDetResult> &output, std::shared_ptr<DNNTensor> &output_tensor, std::shared_ptr<std::vector<hbDNNRoi>> rois)
+int32_t FaceAgeDetOutputParser::Parse(std::shared_ptr<FaceAgeDetResult> &output, std::shared_ptr<DNNTensor> &output_tensor, std::shared_ptr<std::vector<hbDNNRoi>> rois)
 {
     // check roi
     if (rois == nullptr || static_cast<int>(rois->size()) == 0)
@@ -13,7 +13,7 @@ int32_t FaceAgeDetOutputParser::parse(std::shared_ptr<FaceAgeDetResult> &output,
         return -1;
     }
 
-    // allocate mem for output
+    // allocate mem for result
     std::shared_ptr<FaceAgeDetResult> face_age_det_result = nullptr;
     if (output == nullptr)
     {
@@ -37,12 +37,6 @@ int32_t FaceAgeDetOutputParser::parse(std::shared_ptr<FaceAgeDetResult> &output,
 
         RCLCPP_INFO(logger_, "=> shape: [%d, %d, %d, %d]", shape[0], shape[1], shape[2], shape[3]);
         RCLCPP_INFO(logger_, "=> aligned_shape: [%d, %d, %d, %d]", aligned_shape[0], aligned_shape[1], aligned_shape[2], aligned_shape[3]);
-
-        // int offset = 1;
-        // if (output_tensor->properties.tensorLayout == HB_DNN_LAYOUT_NCHW)
-        // {
-        //     offset = aligned_shape[2] * aligned_shape[3];
-        // }
 
         int align_b_step = aligned_shape[1] * aligned_shape[2] * aligned_shape[3];
         int align_c_step = aligned_shape[2] * aligned_shape[3];
@@ -89,6 +83,9 @@ int32_t FaceAgeDetOutputParser::parse(std::shared_ptr<FaceAgeDetResult> &output,
                 }
             }
             RCLCPP_INFO(logger_, "=> age: [%d]", age);
+            face_age_det_result->ages.push_back(age);
         }
     }
+
+    return 0;
 }

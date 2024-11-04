@@ -39,7 +39,6 @@ struct FeedbackImgInfo
     std::vector<std::vector<int32_t>> rois;
 };
 
-
 struct FaceAgeDetOutput : public DnnNodeOutput
 {
     // roi that meets the constraints of the resizer model
@@ -87,6 +86,13 @@ private:
      */
     int Predict(std::vector<std::shared_ptr<DNNInput>> &inputs, const std::shared_ptr<std::vector<hbDNNRoi>> rois, std::shared_ptr<DnnNodeOutput> dnn_output);
 
+    /**
+     * @brief render result to image and save it
+     */
+    int Render(const std::shared_ptr<NV12PyramidInput> &pyramid, std::string result_image, std::shared_ptr<std::vector<hbDNNRoi>> &valid_rois, std::shared_ptr<FaceAgeDetResult> &face_age_det_result);
+
+    // void RunPredict();
+
     // =================================================================================================================================
     // image source used for inference, 0: subscribed image msg; 1: local nv12 format image
     int feed_type_ = 0;
@@ -119,10 +125,24 @@ private:
     // rendered image count
     int render_count_ = 0;
 
-    // ai_msg topic
+    // ai_msg pub topic
     std::string ai_msg_pub_topic_name_ = "/face_age_detection";
     // ai_msg pub
     rclcpp::Publisher<ai_msgs::msg::PerceptionTargets>::SharedPtr msg_publisher_ = nullptr;
+
+    // ai_msg sub topic
+    std::string ai_msg_sub_topic_name_ = "/hobot_mono2d_body_detection";
+    // ai_msg sub
+    rclcpp::Subscription<ai_msgs::msg::PerceptionTargets>::SharedPtr ai_msg_subscription_ = nullptr;
+
+    // image sub topic
+    // Supports sub to the original image | compressed image "/image_raw/compressed" | sensor_msgs::msg::CompressedImage
+    std::string ros_img_topic_name_ = "/image_raw";
+    // image sub
+    rclcpp::Subscription<sensor_msgs::msg::Image>::ConstSharedPtr ros_img_subscription_ = nullptr;
+
+    // predict task
+    std::shared_ptr<std::thread> predict_task_ = nullptr;
 };
 
 #endif

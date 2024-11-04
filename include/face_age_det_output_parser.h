@@ -3,7 +3,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "dnn_node/dnn_node_data.h"
-#include "face_age_det_node.h"
 
 using hobot::dnn_node::DNNTensor;
 using hobot::dnn_node::Model;
@@ -14,11 +13,12 @@ using hobot::dnn_node::Model;
 class FaceAgeDetResult
 {
 public:
-    int age = -1;
+    // save the age of each roi
+    std::vector<int> ages;
 
     void Reset()
     {
-        age = -1;
+        ages.clear();
     }
 };
 
@@ -33,7 +33,7 @@ public:
 
     // 对于roi infer task，每个roi对应一次Parse
     // 因此需要在Parse中实现output和roi的match处理，即当前的Parse对应的是那个roi
-    int32_t parse(std::shared_ptr<FaceAgeDetResult> &output, std::shared_ptr<DNNTensor> &output_tensor, std::shared_ptr<std::vector<hbDNNRoi>> rois);
+    int32_t Parse(std::shared_ptr<FaceAgeDetResult> &output, std::shared_ptr<DNNTensor> &output_tensor, std::shared_ptr<std::vector<hbDNNRoi>> rois);
 
 private:
 
