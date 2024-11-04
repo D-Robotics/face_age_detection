@@ -1,5 +1,19 @@
 #include "face_age_det_node.h"
 
+// ============================================================ Utils Func =============================================================
+builtin_interfaces::msg::Time ConvertToRosTime(const struct timespec &time_spec)
+{
+    builtin_interfaces::msg::Time stamp;
+    stamp.set__sec(time_spec.tv_sec);
+    stamp.set__nanosec(time_spec.tv_nsec);
+    return stamp;
+}
+
+int CalTimeMsDuration(const builtin_interfaces::msg::Time &start, const builtin_interfaces::msg::Time &end)
+{
+    return (end.sec - start.sec) * 1000 + end.nanosec / 1000 / 1000 - start.nanosec / 1000 / 1000;
+}
+
 // ============================================================ Constructor ============================================================
 FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &options) : DnnNode(node_name, options)
 {
@@ -221,27 +235,97 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             ai_msg->set__fps(round(node_output->rt_stat->output_fps));
         }
 
-        // append age to ai msg
-        for (size_t i = 0; i < fac_age_det_output->valid_rois->size(); i++)
-        {
-            // mainly set the `rois` and `attributes` variables
-            auto valid_roi = fac_age_det_output->valid_rois->at(i);
-            ai_msgs::msg::Target target;
-            target.type = "face";
-            auto roi = ai_msgs::msg::Roi();
-            roi.rect.x_offset = valid_roi.left;
-            roi.rect.y_offset = valid_roi.top;
-            roi.rect.height = valid_roi.bottom - valid_roi.top;
-            roi.rect.width = valid_roi.right - valid_roi.left;
-            target.rois.push_back(roi);
+        int face_roi_idx = 0;
+        const std::map<size_t, size_t> &valid_roi_idx = fac_age_det_output->valid_roi_idx;
 
-            /* attribute */
+        for (const auto &in_target : msg->targets)
+        {
+            ai_msgs::msg::Target target;
+            target.set__type(in_target.type);
+
+            target.set__attributes(in_target.attributes);
+            target.set__captures(in_target.captures);
+            target.set__track_id(in_target.track_id);
+
+            std::vector<ai_msgs::msg::Roi> rois;
+            for (const auto &roi : in_target.rois)
             {
-                auto attribute = ai_msgs::msg::Attribute();
-                attribute.set__type("age");
-                attribute.set__value(face_age_det_result->ages[i]);
-                target.attributes.emplace_back(attribute);
+                RCLCPP_DEBUG(this->get_logger(), "roi.type: %s", roi.type.c_str());
+
+                if ("face" == roi.type)
+                {
+                    rois.push_back(roi);
+                    target.set__rois(rois);
+                    // check face_roi_idx in valid_roi_idx
+                    if (valid_roi_idx.find(face_roi_idx) == valid_roi_idx.end())
+                    {
+                        RCLCPP_WARN(this->get_logger(), "This face is filtered! face_roi_idx %d is unmatch with roi idx", face_roi_idx);
+                        std::stringstream ss;
+                        ss << "valid_roi_idx: ";
+                        for (auto idx : valid_roi_idx)
+                        {
+                            ss << idx.first << " " << idx.second << "\n";
+                        }
+                        RCLCPP_DEBUG(this->get_logger(), "%s", ss.str().c_str());
+                        continue;
+                    }
+
+                    // get roi id
+                    auto face_valid_roi_idx = valid_roi_idx.at(face_roi_idx);
+                    if (face_valid_roi_idx >= face_age_det_result->ages.size())
+                    {
+                        RCLCPP_ERROR(this->get_logger(), "face age det outputs %ld unmatch with roi idx %ld", face_age_det_result->ages.size(), face_valid_roi_idx);
+                        break;
+                    }
+
+                    // set age to attribute
+                    auto attribute = ai_msgs::msg::Attribute();
+                    attribute.set__type("age");
+                    attribute.set__value(face_age_det_result->ages[face_valid_roi_idx]);
+                    target.attributes.emplace_back(attribute);
+
+                    face_roi_idx++;
+                }
             }
+
+            ai_msg->set__perfs(msg->perfs);
+
+            fac_age_det_output->perf_preprocess.set__time_ms_duration(CalTimeMsDuration(fac_age_det_output->perf_preprocess.stamp_start, fac_age_det_output->perf_preprocess.stamp_end));
+            ai_msg->perfs.push_back(fac_age_det_output->perf_preprocess);
+
+            // predict
+            if (fac_age_det_output->rt_stat)
+            {
+                ai_msgs::msg::Perf perf;
+                perf.set__type(model_name_ + "_predict_infer");
+                perf.set__stamp_start(ConvertToRosTime(fac_age_det_output->rt_stat->infer_timespec_start));
+                perf.set__stamp_end(ConvertToRosTime(fac_age_det_output->rt_stat->infer_timespec_end));
+                perf.set__time_ms_duration(fac_age_det_output->rt_stat->infer_time_ms);
+                ai_msg->perfs.push_back(perf);
+
+                perf.set__type(model_name_ + "_predict_parse");
+                perf.set__stamp_start(ConvertToRosTime(fac_age_det_output->rt_stat->parse_timespec_start));
+                perf.set__stamp_end(ConvertToRosTime(fac_age_det_output->rt_stat->parse_timespec_end));
+                perf.set__time_ms_duration(fac_age_det_output->rt_stat->parse_time_ms);
+                ai_msg->perfs.push_back(perf);
+            }
+
+            ai_msgs::msg::Perf perf_postprocess;
+            perf_postprocess.set__type(model_name_ + "_postprocess");
+            perf_postprocess.set__stamp_start(ConvertToRosTime(time_now));
+            clock_gettime(CLOCK_REALTIME, &time_now);
+            perf_postprocess.set__stamp_end(ConvertToRosTime(time_now));
+            perf_postprocess.set__time_ms_duration(CalTimeMsDuration(perf_postprocess.stamp_start, perf_postprocess.stamp_end));
+            ai_msg->perfs.emplace_back(perf_postprocess);
+
+            // 从发布图像到发布AI结果的延迟
+            ai_msgs::msg::Perf perf_pipeline;
+            perf_pipeline.set__type(model_name_ + "_pipeline");
+            perf_pipeline.set__stamp_start(ai_msg->header.stamp);
+            perf_pipeline.set__stamp_end(perf_postprocess.stamp_end);
+            perf_pipeline.set__time_ms_duration(CalTimeMsDuration(perf_pipeline.stamp_start, perf_pipeline.stamp_end));
+            ai_msg->perfs.push_back(perf_pipeline);
+
             ai_msg->targets.emplace_back(target);
         }
 
