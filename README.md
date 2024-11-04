@@ -20,6 +20,8 @@ bash build.sh -p X5 -s face_age_detection
 
 ## 运行指令
 
+1. 启动人体、人脸、人手检测算法和年龄检测算法：
+
 ```shell
 ===============================================================================================================================
 # 离线推理
@@ -37,6 +39,20 @@ export CAM_TYPE=mipi
 
 ros2 launch mono2d_body_detection mono2d_body_detection.launch.py
 ```
+
+
+2. 启动人体、人脸、人手检测算法，手势识别算法和年龄检测算法，并使用 [tros_perception_fusion node](https://github.com/D-Robotics/tros_perception_common/tree/develop/tros_perception_fusion) 融合所有感知结果：
+
+```shell
+source /opt/tros/humble/setup.bash
+
+cp -r /opt/tros/${TROS_DISTRO}/lib/mono2d_body_detection/config/ .
+cp -r /opt/tros/${TROS_DISTRO}/lib/hand_lmk_detection/config/ .
+cp -r /opt/tros/${TROS_DISTRO}/lib/hand_gesture_detection/config/ .
+
+ros2 launch face_age_detection age_gesture_fusion.launch.py max_slide_window_size:=100
+```
+
 
 ## 运行结果
 

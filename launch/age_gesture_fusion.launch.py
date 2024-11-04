@@ -28,19 +28,29 @@ def generate_launch_description():
         "max_slide_window_size", default_value="30",
         description="max_slide_window_size")
 
-    gesture_det_node = IncludeLaunchDescription(
+    hand_lmk_det_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("hand_gesture_detection"),
-                "launch/hand_gesture_detection.launch.py",
-            )
-        ),
+                get_package_share_directory('hand_lmk_detection'),
+                'launch/hand_lmk_detection.launch.py')),
         launch_arguments={
-            "ai_msg_pub_topic_name": "/hobot_hand_gesture_detection",
-            'smart_topic': '/hobot_hand_gesture_detection',
-        }.items(),
+            'smart_topic': '/tros_age_gesture_perc_fusion',
+            'hand_lmk_pub_topic': '/hobot_hand_lmk_detection'
+        }.items()
     )
 
+    # 手势识别算法
+    hand_gesture_det_node = Node(
+        package='hand_gesture_detection',
+        executable='hand_gesture_detection',
+        output='screen',
+        parameters=[
+            {"ai_msg_pub_topic_name": "/hobot_hand_gesture_detection"},
+            {"ai_msg_sub_topic_name": "/hobot_hand_lmk_detection"}
+        ],
+        arguments=['--ros-args', '--log-level', 'warn']
+    )
+    
     face_age_det_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -72,7 +82,8 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            gesture_det_node,
+            hand_lmk_det_node,
+            hand_gesture_det_node,
             face_age_det_node,
             perc_fusion_node
         ]
