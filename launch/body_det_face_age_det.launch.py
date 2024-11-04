@@ -32,7 +32,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "mono2d_body_pub_topic": "/hobot_mono2d_body_detection",
-            "smart_topic": "/hobot_face_age_detection",
+            # "smart_topic": "/hobot_face_age_detection",
             "log_level": "error",
         }.items(),
     )
@@ -47,7 +47,7 @@ def generate_launch_description():
         launch_arguments={
             "ai_msg_sub_topic_name": "/hobot_mono2d_body_detection",
             "ai_msg_pub_topic_name": "/hobot_face_age_detection",
-            "is_shared_mem_sub": "0",
+            "is_shared_mem_sub": "1",
             "log_level": "info",
         }.items(),
     )

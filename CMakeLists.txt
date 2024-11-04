@@ -5,6 +5,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# add define
+add_compile_definitions(SHARED_MEM_ENABLED)
+
 # setting variables
 set(SYS_ROOT ${CMAKE_SYSROOT})
 message("=> SYS_ROOT is " ${SYS_ROOT})

@@ -127,7 +127,7 @@ private:
     std::condition_variable cache_cv_;
 
     // log print
-    const rclcpp::Logger &logger_;
+    rclcpp::Logger logger_;
 
     // cache length limit
     size_t cache_limt_len_ = 20;
