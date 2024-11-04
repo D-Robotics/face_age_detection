@@ -72,7 +72,7 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
         ai_msg_manage_ = std::make_shared<AiMsgManage>(this->get_logger());
 
         RCLCPP_INFO(this->get_logger(), "ai_msg_pub_topic_name: %s", ai_msg_pub_topic_name_.data());
-        msg_publisher_ = this->create_publisher<ai_msgs::msg::PerceptionTargets>(ai_msg_pub_topic_name_, 10);
+        ai_msg_publisher_ = this->create_publisher<ai_msgs::msg::PerceptionTargets>(ai_msg_pub_topic_name_, 10);
 
         RCLCPP_INFO(this->get_logger(), "Create subscription with topic_name: %s", ai_msg_sub_topic_name_.c_str());
         ai_msg_subscription_ = this->create_subscription<ai_msgs::msg::PerceptionTargets>(ai_msg_sub_topic_name_, 10, std::bind(&FaceAgeDetNode::AiMsgProcess, this, std::placeholders::_1));
@@ -145,10 +145,10 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
         RCLCPP_WARN(this->get_logger(), "input fps: %.2f, out fps: %.2f", node_output->rt_stat->input_fps, node_output->rt_stat->output_fps);
     }
 
-    // check msg_publisher_
-    if (msg_publisher_ == nullptr && feed_type_ == 0)
+    // check ai_msg_publisher_
+    if (ai_msg_publisher_ == nullptr && feed_type_ == 0)
     {
-        RCLCPP_ERROR(this->get_logger(), "=> invalid msg_publisher_");
+        RCLCPP_ERROR(this->get_logger(), "=> invalid ai_msg_publisher_");
         return -1;
     }
 
@@ -207,8 +207,50 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
     if (face_age_det_result->ages.size() != fac_age_det_output->valid_rois->size() || fac_age_det_output->valid_rois->size() != fac_age_det_output->valid_roi_idx.size())
     {
         RCLCPP_ERROR(this->get_logger(), "check face age det outputs fail");
-        msg_publisher_->publish(std::move(msg));
+        ai_msg_publisher_->publish(std::move(msg));
         return 0;
+    }
+
+    if (msg != nullptr)
+    {
+        ai_msgs::msg::PerceptionTargets::UniquePtr ai_msg(new ai_msgs::msg::PerceptionTargets());
+        ai_msg->set__header(msg->header);
+        ai_msg->set__disappeared_targets(msg->disappeared_targets);
+        if (node_output->rt_stat)
+        {
+            ai_msg->set__fps(round(node_output->rt_stat->output_fps));
+        }
+
+        // append age to ai msg
+        for (size_t i = 0; i < fac_age_det_output->valid_rois->size(); i++)
+        {
+            // mainly set the `rois` and `attributes` variables
+            auto valid_roi = fac_age_det_output->valid_rois->at(i);
+            ai_msgs::msg::Target target;
+            target.type = "face";
+            auto roi = ai_msgs::msg::Roi();
+            roi.rect.x_offset = valid_roi.left;
+            roi.rect.y_offset = valid_roi.top;
+            roi.rect.height = valid_roi.bottom - valid_roi.top;
+            roi.rect.width = valid_roi.right - valid_roi.left;
+            target.rois.push_back(roi);
+
+            /* attribute */
+            {
+                auto attribute = ai_msgs::msg::Attribute();
+                attribute.set__type("age");
+                attribute.set__value(face_age_det_result->ages[i]);
+                target.attributes.emplace_back(attribute);
+            }
+            ai_msg->targets.emplace_back(target);
+        }
+
+        ai_msg_publisher_->publish(std::move(ai_msg));
+    }
+    else
+    {
+        RCLCPP_ERROR(this->get_logger(), "=> invalid ai msg, pub msg fail!");
+        return -1;
     }
 
     return 0;
@@ -374,7 +416,7 @@ void FaceAgeDetNode::RosImgProcess(const sensor_msgs::msg::Image::ConstSharedPtr
         // there may be only image messages, no corresponding AI messages
         if (drop_dnn_output->ai_msg)
         {
-            msg_publisher_->publish(std::move(drop_dnn_output->ai_msg));
+            ai_msg_publisher_->publish(std::move(drop_dnn_output->ai_msg));
         }
     }
     CacheImgType cache_img = std::make_pair<std::shared_ptr<FaceAgeDetOutput>, std::shared_ptr<NV12PyramidInput>>(std::move(dnn_output), std::move(pyramid));
@@ -522,7 +564,7 @@ void FaceAgeDetNode::SharedMemImgProcess(const hbm_img_msgs::msg::HbmMsg1080P::C
         // there may be only image messages, no corresponding AI messages
         if (drop_dnn_output->ai_msg)
         {
-            msg_publisher_->publish(std::move(drop_dnn_output->ai_msg));
+            ai_msg_publisher_->publish(std::move(drop_dnn_output->ai_msg));
         }
     }
     CacheImgType cache_img = std::make_pair<std::shared_ptr<FaceAgeDetOutput>, std::shared_ptr<NV12PyramidInput>>(std::move(dnn_output), std::move(pyramid));

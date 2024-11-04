@@ -32,7 +32,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "mono2d_body_pub_topic": "/hobot_mono2d_body_detection",
-            # "smart_topic": "/hobot_face_age_detection",
+            "smart_topic": "/hobot_face_age_detection",
             "log_level": "error",
         }.items(),
     )

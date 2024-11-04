@@ -163,7 +163,7 @@ private:
     // ai_msg pub topic
     std::string ai_msg_pub_topic_name_ = "/face_age_detection";
     // ai_msg pub
-    rclcpp::Publisher<ai_msgs::msg::PerceptionTargets>::SharedPtr msg_publisher_ = nullptr;
+    rclcpp::Publisher<ai_msgs::msg::PerceptionTargets>::SharedPtr ai_msg_publisher_ = nullptr;
 
     // ai_msg sub topic
     std::string ai_msg_sub_topic_name_ = "/hobot_mono2d_body_detection";
