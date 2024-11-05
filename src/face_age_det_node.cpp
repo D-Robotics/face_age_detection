@@ -352,7 +352,9 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             perf_pipeline.set__time_ms_duration(CalTimeMsDuration(perf_pipeline.stamp_start, perf_pipeline.stamp_end));
             ai_msg->perfs.push_back(perf_pipeline);
 
-            ai_msg->targets.emplace_back(target);
+            if (!target.rois.empty()) {
+                ai_msg->targets.emplace_back(target);
+            }
         }
 
         ai_msg_publisher_->publish(std::move(ai_msg));
