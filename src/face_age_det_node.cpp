@@ -239,6 +239,21 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             ai_msg->set__fps(round(node_output->rt_stat->output_fps));
         }
 
+        if (sp_vote_) {
+            std::vector<uint32_t> disappeared_id_list;
+            for (const auto &disappeared_target : msg->disappeared_targets)
+            {
+                for (const auto &roi : disappeared_target.rois)
+                {
+                    if ("face" == roi.type)
+                    {
+                        disappeared_id_list.push_back(disappeared_target.track_id);
+                    }
+                }
+            }
+            sp_vote_->ClearCache(disappeared_id_list);
+        }
+
         int face_roi_idx = 0;
         const std::map<size_t, size_t> &valid_roi_idx = fac_age_det_output->valid_roi_idx;
 

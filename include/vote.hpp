@@ -88,55 +88,68 @@ class Vote {
 
     return 0;
   }
+  
+  int ClearCache(const std::vector<uint32_t> disappeared_id_list) {
+    if (!track_update_map_.empty()) {
+      // clear timeout track cache
+      auto time_now = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+      for (auto iter = track_update_map_.begin(); iter != track_update_map_.end(); iter++) {
+        auto track_update_last = iter->second;
+        auto track_id = iter->first;
+        if (time_now - track_update_last > track_timeout_sec_) {
+          if (slide_window_map_.find(track_id) != slide_window_map_.end()) {
+            slide_window_map_.erase(track_id);
+          }
+          iter = track_update_map_.erase(iter);
+          if (iter == track_update_map_.end()) {
+            break;
+          }
+        }
+      }
+    }
+    
+    if (disappeared_id_list.empty()) {
+      return 0;
+    }
+    for (const auto &disappeared_track_id : disappeared_id_list) {
+      auto iter = slide_window_map_.find(disappeared_track_id);
+      if (iter != slide_window_map_.end()) {
+        slide_window_map_.erase(iter);
+      }
+      auto timestamp_iter = timestamp_map_.find(disappeared_track_id);
+      if (timestamp_iter != timestamp_map_.end()) {
+        timestamp_map_.erase(timestamp_iter);
+      }
+    }
+
+    return 0;
+  }
 
  private:
   void AdjustQueue(int vote_val,
                   uint32_t track_id) {
     if (type_ == VoTeType::TIMEINTERVAL) {
-      // auto cur_millsec = std::chrono::duration_cast<std::chrono::milliseconds>(
-      //   std::chrono::system_clock::now().time_since_epoch()).count();
-      // // use relative time to avoid time val exceeds float type precision
-      // float timestamp = (cur_millsec - startup_sys_millsec_) / 1000.0;
-      // if (vote_val.value.value != InvalidType) {
-      //   auto vote_info_iter = slide_window_map.find(track_id);
-      //   auto timestamp_iter = timestamp_map_.find(track_id);
-      //   if (vote_info_iter == slide_window_map.end() &&
-      //       timestamp_iter == timestamp_map_.end()) {
-      //     slide_window_map[track_id].push_back(vote_val);
-      //     timestamp_map_[track_id].push_back(timestamp);
-      //   } else {
-      //     auto &vote_info_queue = slide_window_map[track_id];
-      //     auto &timestamp_queue = timestamp_map_[track_id];
-      //     vote_info_queue.push_back(vote_val);
-      //     timestamp_queue.push_back(timestamp);
-      //     float front_timestamp = timestamp_queue.front();
-      //     while (timestamp - front_timestamp > time_interval_) {
-      //       timestamp_queue.pop_front();
-      //       front_timestamp = timestamp_queue.front();
-      //     }
-      //     while (vote_info_queue.size() > timestamp_queue.size()) {
-      //       vote_info_queue.pop_front();
-      //     }
-      //     HOBOT_CHECK(slide_window_map[track_id].size() ==
-      //                 timestamp_map_[track_id].size())
-      //                 << "#vote_val & #timestamp mismatch";
-      //   }
-      // }
     } else {
-      auto iter = slide_window_map.find(track_id);
-      if (iter == slide_window_map.end()) {
-        slide_window_map[track_id].push_back(vote_val);
+      // std::cout << "slide_window_map_ size: " << slide_window_map_.size() << std::endl;
+      track_update_map_[track_id] =
+        std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+      auto iter = slide_window_map_.find(track_id);
+      if (iter == slide_window_map_.end()) {
+        slide_window_map_[track_id].push_back(vote_val);
       } else {
-        int queue_size = slide_window_map[track_id].size();
+        int queue_size = slide_window_map_[track_id].size();
         if (queue_size < max_slide_window_size_) {
-          slide_window_map[track_id].push_back(vote_val);
+          slide_window_map_[track_id].push_back(vote_val);
         } else if (queue_size == max_slide_window_size_) {
-          slide_window_map[track_id].pop_front();
-          assert(slide_window_map[track_id].size()
+          slide_window_map_[track_id].pop_front();
+          assert(slide_window_map_[track_id].size()
             == static_cast<std::size_t>(queue_size - 1));
-          slide_window_map[track_id].push_back(vote_val);
+          slide_window_map_[track_id].push_back(vote_val);
         } else {
-          assert(0);
+          // assert(0);
         }
       }
     }
@@ -144,11 +157,11 @@ class Vote {
   }
 
   int DoVote(int& out_vote, uint32_t track_id) {
-    auto iter = slide_window_map.find(track_id);
-    if (iter == slide_window_map.end()) {
+    auto iter = slide_window_map_.find(track_id);
+    if (iter == slide_window_map_.end()) {
       return -1;
     } else {
-      auto &slide_window = slide_window_map[track_id];
+      auto &slide_window = slide_window_map_[track_id];
       int window_size = slide_window.size();
       if (window_size <= max_slide_window_size_ || type_ == VoTeType::TIMEINTERVAL) {
         std::unordered_map<int, uint32_t> vote;  // type, count
@@ -176,25 +189,6 @@ class Vote {
     return 0;
   }
 
-  
-  int ClearCache(const std::vector<uint32_t> disappeared_id_list) {
-    if (disappeared_id_list.empty()) {
-      return 0;
-    }
-    for (const auto &disappeared_track_id : disappeared_id_list) {
-      auto iter = slide_window_map.find(disappeared_track_id);
-      if (iter != slide_window_map.end()) {
-        slide_window_map.erase(iter);
-      }
-      auto timestamp_iter = timestamp_map_.find(disappeared_track_id);
-      if (timestamp_iter != timestamp_map_.end()) {
-        timestamp_map_.erase(timestamp_iter);
-      }
-    }
-
-    return 0;
-  }
-
  private:
   int max_slide_window_size_;
   float time_interval_;
@@ -203,9 +197,14 @@ class Vote {
     std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::system_clock::now().time_since_epoch()).count();
 
-  std::unordered_map<uint32_t, std::deque<int>> slide_window_map;
   VoTeType type_;
+  // TODO
+  // key is track id
+  std::unordered_map<uint32_t, std::deque<int>> slide_window_map_;
   std::unordered_map<uint32_t, std::deque<float>> timestamp_map_;
+  // key is track id, value is the lastest timestamp of second
+  std::unordered_map<uint32_t, uint64_t> track_update_map_;
+  uint64_t track_timeout_sec_ = 10;
 };
 
 }  // namespace xstream
