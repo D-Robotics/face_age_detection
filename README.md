@@ -50,6 +50,10 @@ cp -r /opt/tros/${TROS_DISTRO}/lib/mono2d_body_detection/config/ .
 cp -r /opt/tros/${TROS_DISTRO}/lib/hand_lmk_detection/config/ .
 cp -r /opt/tros/${TROS_DISTRO}/lib/hand_gesture_detection/config/ .
 
+source install/local_setup.bash
+
+# 使用mipi相机
+export CAM_TYPE=mipi
 ros2 launch face_age_detection age_gesture_fusion.launch.py max_slide_window_size:=100
 ```
 
