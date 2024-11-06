@@ -4,6 +4,10 @@
 
 年龄检测功能包
 
+## 支持平台
+
+目前只支持在X5芯片上运行
+
 ## 编译
 
 - 编译依赖[ai_msgs](https://github.com/D-Robotics/hobot_msgs)
