@@ -138,9 +138,9 @@ private:
     FeedbackImgInfo fb_img_info_;
 
     // model bin file path
-    std::string model_file_name_ = "./config/face_age_bayes_e_20241029_v0.0.1.hbm";
+    std::string model_file_name_ = "./config/faceAge.hbm";
     // model name
-    std::string model_name_ = "face_age_bayes_e_20241029_v0.0.1";
+    std::string model_name_ = "faceAge";
 
     // model input & output info
     int model_input_width_ = -1;

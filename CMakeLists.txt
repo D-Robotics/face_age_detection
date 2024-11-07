@@ -5,6 +5,24 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# for different platforms
+if(PLATFORM_X3)
+  message("=> build for platform X3")
+  set(PREFIX_PATH x3)
+elseif(PLATFORM_Rdkultra)
+  message("=> build for platform Rdkultra")
+  set(PREFIX_PATH rdkultra)
+elseif(PLATFORM_X5)
+  message("=> build for platform X5")
+  set(PREFIX_PATH x5)
+elseif(PLATFORM_X86)
+  message("=> build for platform X86")
+  set(PREFIX_PATH x3)
+else()
+  message("=> invalid for platform, build platform X3 default")
+  set(PREFIX_PATH x5)
+endif()
+
 # add define
 add_compile_definitions(SHARED_MEM_ENABLED)
 
@@ -49,7 +67,8 @@ ament_target_dependencies(face_age_detection
 # install
 install(TARGETS face_age_detection DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config/${PREFIX_PATH}/ DESTINATION share/${PROJECT_NAME}/config/)
+install(FILES config/image.png DESTINATION share/${PROJECT_NAME}/config/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -41,7 +41,7 @@ def generate_launch_description():
     model_file_name = os.path.join(
         get_package_share_directory("face_age_detection"),
         "config",
-        "face_age_bayes_e_20241029_v0.0.1.hbm",
+        "faceAge.hbm",
     )
 
     feed_image_path = os.path.join(

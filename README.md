@@ -41,7 +41,7 @@ export CAM_TYPE=usb
 # 使用mipi相机
 export CAM_TYPE=mipi
 
-ros2 launch mono2d_body_detection mono2d_body_detection.launch.py
+ros2 launch mono2d_body_detection body_det_face_age_det.launch.py
 ```
 
 
@@ -71,14 +71,14 @@ ros2 launch face_age_detection age_gesture_fusion.launch.py max_slide_window_siz
 
 ## 功能包参数
 
-| 名称                  | 默认参数值                                   | 说明                                                 |
-| --------------------- | -------------------------------------------- | ---------------------------------------------------- |
-| feed_type             | 0                                            | 0：使用相机采集的图像实时推理，1：使用离线图像推理   |
-| feed_image_path       | ./config/image.png                           | 输入的图像，png、jpg等格式均可                       |
-| is_sync_mode          | 0                                            | 0：异步推理，1：同步推理                             |
-| model_file_name       | ./configface_age_bayes_e_20241029_v0.0.1.hbm | 模型文件，目前是v0.0.1版本                           |
-| is_shared_mem_sub     | 1                                            | 0：不使用shared mem通信方式，1：用shared mem通信方式 |
-| dump_render_img       | 0                                            | 0：不保存渲染图像，1：保存渲染图像                   |
-| ai_msg_pub_topic_name | /face_age_detection                          | 发布ai_msg的话题名称，只有实时推理会发布             |
-| max_slide_window_size | 15                                           | 投票队列最大长度                                     |
+| 名称                  | 默认参数值           | 说明                                                 |
+| --------------------- | -------------------- | ---------------------------------------------------- |
+| feed_type             | 0                    | 0：使用相机采集的图像实时推理，1：使用离线图像推理   |
+| feed_image_path       | ./config/image.png   | 输入的图像，png、jpg等格式均可                       |
+| is_sync_mode          | 0                    | 0：异步推理，1：同步推理                             |
+| model_file_name       | ./config/faceAge.hbm | 模型文件                                             |
+| is_shared_mem_sub     | 1                    | 0：不使用shared mem通信方式，1：用shared mem通信方式 |
+| dump_render_img       | 0                    | 0：不保存渲染图像，1：保存渲染图像                   |
+| ai_msg_pub_topic_name | /face_age_detection  | 发布ai_msg的话题名称，只有实时推理会发布             |
+| max_slide_window_size | 15                   | 投票队列最大长度                                     |
 

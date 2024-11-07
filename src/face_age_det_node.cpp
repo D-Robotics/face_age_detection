@@ -19,14 +19,14 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
 {
     // =================================================================================================================================
     /* param settings */
-    feed_type_ = this->declare_parameter<int>("feed_type", 0);
-    feed_image_path_ = this->declare_parameter<std::string>("feed_image_path", "./config/image.png");
+    feed_type_ = this->declare_parameter<int>("feed_type", feed_type_);
+    feed_image_path_ = this->declare_parameter<std::string>("feed_image_path", feed_image_path_);
     std::string roi_xyxy = this->declare_parameter<std::string>("roi_xyxy", "0,0,0,0");
-    is_sync_mode_ = this->declare_parameter<int>("is_sync_mode", 0);
-    model_file_name_ = this->declare_parameter<std::string>("model_file_name", "./config/face_age_bayes_e_20241029_v0.0.1.hbm");
-    is_shared_mem_sub_ = this->declare_parameter<int>("is_shared_mem_sub", 1);
-    dump_render_img_ = this->declare_parameter<int>("dump_render_img", 0);
-    ai_msg_pub_topic_name_ = this->declare_parameter<std::string>("ai_msg_pub_topic_name", "/face_age_detection");
+    is_sync_mode_ = this->declare_parameter<int>("is_sync_mode", is_sync_mode_);
+    model_file_name_ = this->declare_parameter<std::string>("model_file_name", model_file_name_);
+    is_shared_mem_sub_ = this->declare_parameter<int>("is_shared_mem_sub", is_shared_mem_sub_);
+    dump_render_img_ = this->declare_parameter<int>("dump_render_img", dump_render_img_);
+    ai_msg_pub_topic_name_ = this->declare_parameter<std::string>("ai_msg_pub_topic_name", ai_msg_pub_topic_name_);
     max_slide_window_size = this->declare_parameter<int>("max_slide_window_size", max_slide_window_size);
 
     RCLCPP_WARN_STREAM(this->get_logger(), "=> " << node_name << " params:" << std::endl
@@ -239,7 +239,8 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             ai_msg->set__fps(round(node_output->rt_stat->output_fps));
         }
 
-        if (sp_vote_) {
+        if (sp_vote_)
+        {
             std::vector<uint32_t> disappeared_id_list;
             for (const auto &disappeared_target : msg->disappeared_targets)
             {
@@ -303,11 +304,12 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
                     // attribute.set__value(face_age_det_result->ages[face_valid_roi_idx]);
                     int age = face_age_det_result->ages[face_valid_roi_idx];
                     int out_val;
-                    if (sp_vote_ && sp_vote_->DoProcess(age, in_target.track_id, out_val) == 0) {
+                    if (sp_vote_ && sp_vote_->DoProcess(age, in_target.track_id, out_val) == 0)
+                    {
                         age = out_val;
                     }
                     attribute.set__value(age);
-                
+
                     target.attributes.emplace_back(attribute);
 
                     face_roi_idx++;
@@ -352,7 +354,8 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             perf_pipeline.set__time_ms_duration(CalTimeMsDuration(perf_pipeline.stamp_start, perf_pipeline.stamp_end));
             ai_msg->perfs.push_back(perf_pipeline);
 
-            if (!target.rois.empty()) {
+            if (!target.rois.empty())
+            {
                 ai_msg->targets.emplace_back(target);
             }
         }
@@ -455,7 +458,7 @@ int FaceAgeDetNode::Predict(std::vector<std::shared_ptr<DNNInput>> &inputs, cons
     return Run(inputs, dnn_output, rois, is_sync_mode_ == 1 ? true : false);
 }
 
-// ============================================================ Online Processing ======================================================s
+// ============================================================ Online Processing ======================================================
 void FaceAgeDetNode::AiMsgProcess(const ai_msgs::msg::PerceptionTargets::ConstSharedPtr msg)
 {
     if (!msg || !rclcpp::ok() || !ai_msg_manage_)
@@ -690,21 +693,28 @@ void FaceAgeDetNode::SharedMemImgProcess(const hbm_img_msgs::msg::HbmMsg1080P::C
 int FaceAgeDetNode::Render(const std::shared_ptr<NV12PyramidInput> &pyramid, std::string result_image, std::shared_ptr<std::vector<hbDNNRoi>> &valid_rois,
                            std::shared_ptr<FaceAgeDetResult> &face_age_det_result)
 {
-    // nv12 to bgr
-    char *y_img = reinterpret_cast<char *>(pyramid->y_vir_addr);
-    char *uv_img = reinterpret_cast<char *>(pyramid->uv_vir_addr);
-    auto height = pyramid->height;
-    auto width = pyramid->width;
-    RCLCPP_INFO(this->get_logger(), "=> pyramid [w, h] = [%d, %d]", width, height);
-    auto img_y_size = height * width;
-    auto img_uv_size = img_y_size / 2;
-    char *buf = new char[img_y_size + img_uv_size];
-    memcpy(buf, y_img, img_y_size);
-    memcpy(buf + img_y_size, uv_img, img_uv_size);
-    cv::Mat nv12(height * 3 / 2, width, CV_8UC1, buf);
     cv::Mat bgr;
-    cv::cvtColor(nv12, bgr, cv::COLOR_YUV2BGR_NV12);
-    delete[] buf;
+    if (feed_type_ == 1)
+    {
+        bgr = cv::imread(fb_img_info_.image, cv::IMREAD_COLOR);
+    }
+    else
+    {
+        // nv12 to bgr
+        char *y_img = reinterpret_cast<char *>(pyramid->y_vir_addr);
+        char *uv_img = reinterpret_cast<char *>(pyramid->uv_vir_addr);
+        auto height = pyramid->height;
+        auto width = pyramid->width;
+        RCLCPP_INFO(this->get_logger(), "=> pyramid [w, h] = [%d, %d]", width, height);
+        auto img_y_size = height * width;
+        auto img_uv_size = img_y_size / 2;
+        char *buf = new char[img_y_size + img_uv_size];
+        memcpy(buf, y_img, img_y_size);
+        memcpy(buf + img_y_size, uv_img, img_uv_size);
+        cv::Mat nv12(height * 3 / 2, width, CV_8UC1, buf);
+        cv::cvtColor(nv12, bgr, cv::COLOR_YUV2BGR_NV12);
+        delete[] buf;
+    }
 
     for (size_t i = 0; i < valid_rois->size(); i++)
     {
