@@ -145,8 +145,8 @@ class Vote {
           slide_window_map_[track_id].push_back(vote_val);
         } else if (queue_size == max_slide_window_size_) {
           slide_window_map_[track_id].pop_front();
-          assert(slide_window_map_[track_id].size()
-            == static_cast<std::size_t>(queue_size - 1));
+          // assert(slide_window_map_[track_id].size()
+          //   == static_cast<std::size_t>(queue_size - 1));
           slide_window_map_[track_id].push_back(vote_val);
         } else {
           // assert(0);

@@ -9,7 +9,7 @@ int32_t FaceAgeDetOutputParser::Parse(std::shared_ptr<FaceAgeDetResult> &output,
     // check roi
     if (rois == nullptr || static_cast<int>(rois->size()) == 0)
     {
-        RCLCPP_ERROR(logger_, "=> get null rois");
+        RCLCPP_INFO(logger_, "=> get null rois");
         return -1;
     }
 
