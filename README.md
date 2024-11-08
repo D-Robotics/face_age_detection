@@ -6,7 +6,10 @@
 
 ## 支持平台
 
-目前只支持在X5芯片上运行
+| 物料名称        | 生产厂家 | 参考链接                                                                                                                                              |
+| :-------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RDK X3 / RDK X5 | 多厂家   | [RDK X3](https://developer.d-robotics.cc/rdkx3)<br>[RDK X5](https://developer.d-robotics.cc/rdkx5)                                                    |
+| camera          | 多厂家   | [MIPI相机](https://developer.horizon.cc/nodehubdetail/168958376283445781)<br>[USB相机](https://developer.horizon.cc/nodehubdetail/168958376283445777) |
 
 ## 编译
 
