@@ -190,9 +190,11 @@ private:
     // Perform inference in threads to avoid blocking IO channels and causing AI msg message loss
     std::mutex mtx_img_;
     std::condition_variable cv_img_;
-    
-    int max_slide_window_size = 15;
+
+    // vote processing: make detected age more robust
     std::shared_ptr<tros::Vote> sp_vote_ = nullptr;
+    // voting queue length
+    int max_slide_window_size = 15;
 };
 
 #endif

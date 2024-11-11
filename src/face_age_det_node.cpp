@@ -77,6 +77,7 @@ FaceAgeDetNode::FaceAgeDetNode(const std::string &node_name, const NodeOptions &
         RCLCPP_INFO(this->get_logger(), "=> The model input width is %d and height is %d", model_input_width_, model_input_height_);
     }
 
+    // init vote processor
     sp_vote_ = std::make_shared<tros::Vote>(tros::VoTeType::AGE, max_slide_window_size);
 
     // set inference tasks
@@ -239,6 +240,7 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
             ai_msg->set__fps(round(node_output->rt_stat->output_fps));
         }
 
+        // voting queue clears disappearing ids
         if (sp_vote_)
         {
             std::vector<uint32_t> disappeared_id_list;
@@ -304,6 +306,7 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
                     // attribute.set__value(face_age_det_result->ages[face_valid_roi_idx]);
                     int age = face_age_det_result->ages[face_valid_roi_idx];
                     int out_val;
+                    // vote on detected age
                     if (sp_vote_ && sp_vote_->DoProcess(age, in_target.track_id, out_val) == 0)
                     {
                         age = out_val;
