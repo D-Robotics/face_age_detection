@@ -585,7 +585,15 @@ void FaceAgeDetNode::RunPredict()
                 rois = std::make_shared<std::vector<hbDNNRoi>>();
             }
         }
-        dnn_output->valid_rois = rois;
+
+        dnn_output->valid_rois = std::make_shared<std::vector<hbDNNRoi>>();
+        for (const auto& roi : *rois) {
+        hbDNNRoi normed_roi;
+        NormalizeRoi(&roi, &normed_roi, expand_scale_,
+            pyramid->width, pyramid->height);
+        dnn_output->valid_rois->push_back(normed_roi);
+        }
+        // dnn_output->valid_rois = rois;
         dnn_output->valid_roi_idx = valid_roi_idx;
         dnn_output->ai_msg = std::move(ai_msg);
 
@@ -739,4 +747,33 @@ int FaceAgeDetNode::Render(const std::shared_ptr<NV12PyramidInput> &pyramid, std
     cv::imwrite(result_image, bgr);
 
     return 0;
+}
+
+int FaceAgeDetNode::NormalizeRoi(const hbDNNRoi *src,
+                            hbDNNRoi *dst,
+                            float norm_ratio,
+                            uint32_t total_w,
+                            uint32_t total_h) {
+  *dst = *src;
+  float box_w = dst->right - dst->left;
+  float box_h = dst->bottom - dst->top;
+  float center_x = (dst->left + dst->right) / 2.0f;
+  float center_y = (dst->top + dst->bottom) / 2.0f;
+  float w_new = box_w;
+  float h_new = box_h;
+  
+  // {"norm_by_lside_ratio", NormMethod::BPU_MODEL_NORM_BY_LSIDE_RATIO},
+  h_new = box_h * norm_ratio;
+  w_new = box_w * norm_ratio;
+  dst->left = center_x - w_new / 2;
+  dst->right = center_x + w_new / 2;
+  dst->top = center_y - h_new / 2;
+  dst->bottom = center_y + h_new / 2;
+
+  dst->left = dst->left < 0 ? 0.0f : dst->left;
+  dst->top = dst->top < 0 ? 0.0f : dst->top;
+  dst->right = dst->right > total_w ? total_w : dst->right;
+  dst->bottom = dst->bottom > total_h ? total_h : dst->bottom;
+
+  return 0;
 }
