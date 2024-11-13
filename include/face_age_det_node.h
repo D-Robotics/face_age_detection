@@ -10,7 +10,6 @@
 #include "ai_msgs/msg/perception_targets.hpp"
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
-#include "img_convert_utils.h"
 #include "face_age_det_output_parser.h"
 #include "ai_msg_manage.h"
 #ifdef SHARED_MEM_ENABLED

@@ -70,7 +70,7 @@ ament_target_dependencies(face_age_detection
 install(TARGETS face_age_detection DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config/${PREFIX_PATH}/ DESTINATION share/${PROJECT_NAME}/config/)
-install(FILES config/image.png DESTINATION share/${PROJECT_NAME}/config/)
+# install(FILES config/image.png DESTINATION share/${PROJECT_NAME}/config/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
