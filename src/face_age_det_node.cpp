@@ -783,5 +783,11 @@ int FaceAgeDetNode::NormalizeRoi(const hbDNNRoi *src,
   dst->right = dst->right > total_w ? total_w : dst->right;
   dst->bottom = dst->bottom > total_h ? total_h : dst->bottom;
 
+  // roi's left and top must be even, right and bottom must be odd
+  dst->left += (dst->left % 2 == 0 ? 0 : 1);
+  dst->top += (dst->top % 2 == 0 ? 0 : 1);
+  dst->right -= (dst->right % 2 == 1 ? 0 : 1);
+  dst->bottom -= (dst->bottom % 2 == 1 ? 0 : 1);
+ 
   return 0;
 }
