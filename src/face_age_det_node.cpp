@@ -383,6 +383,7 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
 // ============================================================ Offline processing =====================================================
 int FaceAgeDetNode::Feedback()
 {
+#if 0
     // check image
     if (access(fb_img_info_.image.c_str(), R_OK) == -1)
     {
@@ -456,6 +457,7 @@ int FaceAgeDetNode::Feedback()
     {
         return -1;
     }
+#endif
 
     return 0;
 }
