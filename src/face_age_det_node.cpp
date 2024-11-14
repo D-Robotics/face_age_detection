@@ -161,7 +161,7 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
     // print fps
     if (node_output->rt_stat->fps_updated)
     {
-        RCLCPP_WARN(this->get_logger(),
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
                 "input fps: %.2f, out fps: %.2f, "
                 "infer time ms: %d, post process time ms: %d",
                 node_output->rt_stat->input_fps,
@@ -287,7 +287,7 @@ int FaceAgeDetNode::PostProcess(const std::shared_ptr<DnnNodeOutput> &node_outpu
                     // check face_roi_idx in valid_roi_idx
                     if (valid_roi_idx.find(face_roi_idx) == valid_roi_idx.end())
                     {
-                        RCLCPP_WARN(this->get_logger(), "This face is filtered! face_roi_idx %d is unmatch with roi idx", face_roi_idx);
+                        RCLCPP_INFO(this->get_logger(), "This face is filtered! face_roi_idx %d is unmatch with roi idx", face_roi_idx);
                         std::stringstream ss;
                         ss << "valid_roi_idx: ";
                         for (auto idx : valid_roi_idx)
@@ -580,7 +580,11 @@ void FaceAgeDetNode::RunPredict()
         std::shared_ptr<std::vector<hbDNNRoi>> rois = nullptr;
         std::map<size_t, size_t> valid_roi_idx;
         ai_msgs::msg::PerceptionTargets::UniquePtr ai_msg = nullptr;
-        if (ai_msg_manage_->GetTargetRois(dnn_output->image_msg_header->stamp, rois, valid_roi_idx, ai_msg, 200) < 0 || ai_msg == nullptr)
+        if (ai_msg_manage_->GetTargetRois(dnn_output->image_msg_header->stamp, rois, valid_roi_idx, ai_msg,
+            std::bind(&FaceAgeDetNode::NormalizeRoi, this,
+                std::placeholders::_1, std::placeholders::_2,
+                expand_scale_, pyramid->width, pyramid->height),
+            200) < 0 || ai_msg == nullptr)
         {
             RCLCPP_INFO(this->get_logger(), "=> frame ts %s get face roi fail", ts.c_str());
             continue;
@@ -594,14 +598,7 @@ void FaceAgeDetNode::RunPredict()
             }
         }
 
-        dnn_output->valid_rois = std::make_shared<std::vector<hbDNNRoi>>();
-        for (const auto& roi : *rois) {
-        hbDNNRoi normed_roi;
-        NormalizeRoi(&roi, &normed_roi, expand_scale_,
-            pyramid->width, pyramid->height);
-        dnn_output->valid_rois->push_back(normed_roi);
-        }
-        // dnn_output->valid_rois = rois;
+        dnn_output->valid_rois = rois;
         dnn_output->valid_roi_idx = valid_roi_idx;
         dnn_output->ai_msg = std::move(ai_msg);
 
@@ -789,5 +786,48 @@ int FaceAgeDetNode::NormalizeRoi(const hbDNNRoi *src,
   dst->right -= (dst->right % 2 == 1 ? 0 : 1);
   dst->bottom -= (dst->bottom % 2 == 1 ? 0 : 1);
  
+  int32_t roi_w = dst->right - dst->left;
+  int32_t roi_h = dst->bottom - dst->top;
+  int32_t max_size = std::max(roi_w, roi_h);
+  int32_t min_size = std::min(roi_w, roi_h);
+
+  if (max_size < roi_size_max_ && min_size > roi_size_min_) {
+    // check success
+    RCLCPP_DEBUG(this->get_logger(),
+                  "Valid roi: %d %d %d %d, roi_w: %d, roi_h: %d, "
+                  "max_size: %d, min_size: %d",
+                  dst->left,
+                  dst->top,
+                  dst->right,
+                  dst->bottom,
+                  roi_w,
+                  roi_h,
+                  max_size,
+                  min_size);
+    return 0;
+  } else {
+    RCLCPP_INFO(
+        this->get_logger(),
+        "Filter roi: %d %d %d %d, max_size: %d, min_size: %d",
+        dst->left,
+        dst->top,
+        dst->right,
+        dst->bottom,
+        max_size,
+        min_size);
+    if (max_size >= roi_size_max_) {
+      RCLCPP_INFO(
+          this->get_logger(),
+          "Move far from sensor!");
+    } else if (min_size <= roi_size_min_) {
+      RCLCPP_INFO(
+          this->get_logger(),
+          "Move close to sensor!");
+    }
+
+    return -1;
+  }
+
   return 0;
 }
+

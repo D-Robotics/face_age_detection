@@ -150,6 +150,10 @@ private:
     int32_t model_output_count_ = 1;
 
     float expand_scale_ = 1.2;
+    // resizer model input size limit
+    // roi, width & hight must be in range [16, 256)
+    int32_t roi_size_max_ = 255;
+    int32_t roi_size_min_ = 16;
 
     // mode task type
     ModelTaskType model_task_type_ = ModelTaskType::ModelRoiInferType;
