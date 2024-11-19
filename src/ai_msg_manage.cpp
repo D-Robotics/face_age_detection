@@ -1,3 +1,17 @@
+// Copyright (c) 2024，D-Robotics.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ai_msg_manage.h"
 
 AiMsgManage::AiMsgManage(const rclcpp::Logger &logger) : logger_(logger), face_age_det_feed_cache_(logger)
@@ -66,13 +80,13 @@ int AiMsgManage::GetTargetRois(const std_msgs::msg::Header::_stamp_type &msg_ts,
 
                 rois->push_back(normed_roi);
                 RCLCPP_DEBUG(rclcpp::get_logger("hand_lmk_msg_manage"),
-                            "rois size: %d",
+                            "rois size: %ld",
                             rois->size());
                 // 原始roi的索引对应于valid_rois的索引
                 valid_roi_idx[face_roi_idx] = rois->size() - 1;
 
                 RCLCPP_DEBUG(rclcpp::get_logger("hand_lmk_msg_manage"),
-                            "Valid roi map: %d %d",
+                            "Valid roi map: %ld %ld",
                             face_roi_idx,
                             valid_roi_idx[face_roi_idx]);
                 }
