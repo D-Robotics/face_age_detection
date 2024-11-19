@@ -10,7 +10,6 @@
 #include "ai_msgs/msg/perception_targets.hpp"
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
-#include "img_convert_utils.h"
 #include "face_age_det_output_parser.h"
 #include "ai_msg_manage.h"
 #ifdef SHARED_MEM_ENABLED
@@ -129,6 +128,9 @@ private:
     void SharedMemImgProcess(const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg);
 #endif
 
+    int NormalizeRoi(const hbDNNRoi *src, hbDNNRoi *dst,
+                    float norm_ratio, uint32_t total_w, uint32_t total_h);
+
     // =================================================================================================================================
     // image source used for inference, 0: subscribed image msg; 1: local nv12 format image
     int feed_type_ = 0;
@@ -146,6 +148,12 @@ private:
     int model_input_width_ = -1;
     int model_input_height_ = -1;
     int32_t model_output_count_ = 1;
+
+    float expand_scale_ = 1.2;
+    // resizer model input size limit
+    // roi, width & hight must be in range [16, 256)
+    int32_t roi_size_max_ = 255;
+    int32_t roi_size_min_ = 16;
 
     // mode task type
     ModelTaskType model_task_type_ = ModelTaskType::ModelRoiInferType;

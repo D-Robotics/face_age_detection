@@ -47,7 +47,9 @@ link_directories(
 )
 
 # add executable
-add_executable(face_age_detection src/main.cpp src/face_age_det_node.cpp src/face_age_det_output_parser.cpp src/ai_msg_manage.cpp src/img_convert_utils.cpp)
+add_executable(face_age_detection src/main.cpp src/face_age_det_node.cpp src/face_age_det_output_parser.cpp src/ai_msg_manage.cpp 
+  # src/img_convert_utils.cpp
+  )
 target_compile_features(face_age_detection PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_include_directories(face_age_detection PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -68,7 +70,7 @@ ament_target_dependencies(face_age_detection
 install(TARGETS face_age_detection DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config/${PREFIX_PATH}/ DESTINATION share/${PROJECT_NAME}/config/)
-install(FILES config/image.png DESTINATION share/${PROJECT_NAME}/config/)
+# install(FILES config/image.png DESTINATION share/${PROJECT_NAME}/config/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

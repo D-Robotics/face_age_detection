@@ -146,7 +146,9 @@ public:
 
     void Feed(const ai_msgs::msg::PerceptionTargets::ConstSharedPtr msg);
     int GetTargetRois(const std_msgs::msg::Header::_stamp_type &msg_ts, std::shared_ptr<std::vector<hbDNNRoi>> &rois, std::map<size_t, size_t> &valid_roi_idx,
-                      ai_msgs::msg::PerceptionTargets::UniquePtr &ai_msg, int time_out_ms = 200);
+                      ai_msgs::msg::PerceptionTargets::UniquePtr &ai_msg,
+                    std::function<int(const hbDNNRoi*, hbDNNRoi*)> norm_func,
+                    int time_out_ms = 200);
 
 private:
     // log print
@@ -154,10 +156,6 @@ private:
 
     // cache ai msg for face age detection
     FaceAgeDetFeedCache face_age_det_feed_cache_;
-
-    // resizer model input size limit, roi, width & hight must be in range [16, 256)
-    int32_t roi_size_max_ = 255;
-    int32_t roi_size_min_ = 16;
 };
 
 #endif
