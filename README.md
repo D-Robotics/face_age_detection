@@ -44,7 +44,7 @@ export CAM_TYPE=usb
 # 使用mipi相机
 export CAM_TYPE=mipi
 
-ros2 launch mono2d_body_detection body_det_face_age_det.launch.py
+ros2 launch face_age_detection body_det_face_age_det.launch.py
 ```
 
 
