@@ -1,23 +1,25 @@
 # face_age_detection
 
-## 描述
+English| [简体中文](./README_CN.md)
 
-年龄检测功能包
+## Description
 
-## 支持平台
+Face Age Detection Package
 
-| 物料名称        | 生产厂家 | 参考链接                                                                                                                                              |
-| :-------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RDK X3 / RDK X5 | 多厂家   | [RDK X3](https://developer.d-robotics.cc/rdkx3)<br>[RDK X5](https://developer.d-robotics.cc/rdkx5)                                                    |
-| camera          | 多厂家   | [MIPI相机](https://developer.horizon.cc/nodehubdetail/168958376283445781)<br>[USB相机](https://developer.horizon.cc/nodehubdetail/168958376283445777) |
+## Supported Platforms
 
-## 编译
+| Material Name   | Manufacturer | Reference Links                                                                                                                                             |
+| :-------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RDK X3 / RDK X5 | Multiple     | [RDK X3](https://developer.d-robotics.cc/rdkx3)<br>[RDK X5](https://developer.d-robotics.cc/rdkx5)                                                          |
+| Camera          | Multiple     | [MIPI Camera](https://developer.horizon.cc/nodehubdetail/168958376283445781)<br>[USB Camera](https://developer.horizon.cc/nodehubdetail/168958376283445777) |
 
-- 编译依赖[ai_msgs](https://github.com/D-Robotics/hobot_msgs)
-- 编译依赖[hobot_dnn](https://github.com/D-Robotics/hobot_dnn)
+## Building
+
+- Building depends on [ai_msgs](https://github.com/D-Robotics/hobot_msgs)
+- Building depends on [hobot_dnn](https://github.com/D-Robotics/hobot_dnn)
 
 ```shell
-# X5交叉编译
+# Cross-compilation for X5
 bash build.sh -p X5 -s img_msgs
 bash build.sh -p X5 -s hbm_img_msgs
 bash build.sh -p X5 -s ai_msgs
@@ -25,63 +27,72 @@ bash build.sh -p X5 -s dnn_node
 bash build.sh -p X5 -s face_age_detection
 ```
 
-## 运行指令
+## Running Instructions
 
-1. 启动人体、人脸、人手检测算法和年龄检测算法：
+1. Start the body, face, hand detection algorithms, and age detection algorithm:
 
 ```shell
 ===============================================================================================================================
-# 离线推理
-ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=图片.png roi_xyxy:=x1,y1,x2,y2,x3,y3,x4,y4,...
-# 例如
+# Load the tros.b environment
+source /opt/tros/humble/setup.bash
+source ./install/local_setup.bash
+===============================================================================================================================
+# Offline Inference
+ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=image.png roi_xyxy:=x1,y1,x2,y2,x3,y3,x4,y4,...
+
+# For example
 ros2 launch face_age_detection face_age_det_node.launch.py feed_type:=1 feed_image_path:=image.png roi_xyxy:=251,242,328,337
 ===============================================================================================================================
-# 在线推理，需要同时启动身体部分检测和年龄检测节点
+# Online Inference, requires simultaneous launch of body detection and age detection nodes
 cp -r /opt/tros/${TROS_DISTRO}/lib/mono2d_body_detection/config/ .
 
-# 使用usb相机
+# For USB camera
 export CAM_TYPE=usb
-# 使用mipi相机
+# For MIPI camera
 export CAM_TYPE=mipi
 
+# Launch the launch file
 ros2 launch face_age_detection body_det_face_age_det.launch.py
+===============================================================================================================================
 ```
 
-
-2. 启动人体、人脸、人手检测算法，手势识别算法和年龄检测算法，并使用 [tros_perception_fusion node](https://github.com/D-Robotics/tros_perception_common/tree/develop/tros_perception_fusion) 融合所有感知结果：
+2. Start the body, face, hand detection algorithms, hand gesture recognition algorithm, and age detection algorithm, and use the [tros_perception_fusion node](https://github.com/D-Robotics/tros_perception_common/tree/develop/tros_perception_fusion) to fuse all perception results:
 
 ```shell
+# Load the tros.b environment
 source /opt/tros/humble/setup.bash
+source ./install/local_setup.bash
 
+# Copy the required resource files to the current directory
 cp -r /opt/tros/${TROS_DISTRO}/lib/mono2d_body_detection/config/ .
 cp -r /opt/tros/${TROS_DISTRO}/lib/hand_lmk_detection/config/ .
 cp -r /opt/tros/${TROS_DISTRO}/lib/hand_gesture_detection/config/ .
 
-source install/local_setup.bash
-
-# 使用usb相机
+# For USB camera
 export CAM_TYPE=usb
-# 使用mipi相机
+# For MIPI camera
 export CAM_TYPE=mipi
 
+# Launch the launch file
 ros2 launch face_age_detection age_gesture_fusion.launch.py max_slide_window_size:=100
 ```
 
+## Running Results
 
-## 运行结果
+Outputs the detected age.
 
-输出检测的年龄
+![](./doc/face_age_det_render.png)
 
-## 功能包参数
+## Package Parameters
 
-| 名称                  | 默认参数值           | 说明                                                 |
-| --------------------- | -------------------- | ---------------------------------------------------- |
-| feed_type             | 0                    | 0：使用相机采集的图像实时推理，1：使用离线图像推理   |
-| feed_image_path       | ./config/image.png   | 输入的图像，png、jpg等格式均可                       |
-| is_sync_mode          | 0                    | 0：异步推理，1：同步推理                             |
-| model_file_name       | ./config/faceAge.hbm | 模型文件                                             |
-| is_shared_mem_sub     | 1                    | 0：不使用shared mem通信方式，1：用shared mem通信方式 |
-| dump_render_img       | 0                    | 0：不保存渲染图像，1：保存渲染图像                   |
-| ai_msg_pub_topic_name | /face_age_detection  | 发布ai_msg的话题名称，只有实时推理会发布             |
-| max_slide_window_size | 15                   | 投票队列最大长度                                     |
+| Name                  | Default Value        | Description                                                                                                                                           |
+| --------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| feed_type             | 0                    | 0: Real-time inference using camera-captured images, 1: Offline inference using static images                                                         |
+| feed_image_path       | ./config/image.png   | Input image, in formats such as png, jpg, etc.                                                                                                        |
+| is_sync_mode          | 0                    | 0: Asynchronous inference, 1: Synchronous inference                                                                                                   |
+| model_file_name       | ./config/faceAge.hbm | Model file                                                                                                                                            |
+| is_shared_mem_sub     | 1                    | 0: Do not use shared memory communication, 1: Use shared memory communication                                                                         |
+| dump_render_img       | 0                    | 0: Do not save rendered images, 1: Save rendered images                                                                                               |
+| ai_msg_pub_topic_name | /face_age_detection  | Topic name for publishing ai_msg, only used for real-time inference                                                                                   |
+| max_slide_window_size | 15                   | Maximum length of the voting queue. Ages are saved into the queue during continuous inference, and the age with the most votes is taken as the result |
 
